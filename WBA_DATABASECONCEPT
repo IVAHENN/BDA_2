@@ -1,0 +1,81 @@
+- includes
+    - Student.h
+    - StudentRepository.h
+- src
+    - Student.cpp
+    - StudentRepository.cpp
+    - main.cpp
+    #pragma once
+
+#include <string>
+
+class Student {
+public:
+    int Id;
+    std::string Name;
+};
+#pragma once
+
+#include <vector>
+#include "Student.h"
+
+class StudentRepository {
+public:
+    std::vector<Student> GetAllStudents();
+};
+#include "StudentRepository.h"
+#include <mysql_driver.h>
+#include <mysql_connection.h>
+
+std::vector<Student> StudentRepository::GetAllStudents() {
+    std::vector<Student> students;
+
+    try {
+        sql::mysql::MySQL_Driver *driver;
+        sql::Connection *con;
+
+        // Establish a database connection
+        driver = sql::mysql::get_mysql_driver_instance();
+        con = driver->connect("tcp://127.0.0.1:3306", "username", "password");
+        con->setSchema("WBA_DATABASECONCEPT");
+
+        // Execute the query to fetch all students
+        sql::Statement *stmt;
+        sql::ResultSet *res;
+
+        stmt = con->createStatement();
+        res = stmt->executeQuery("SELECT * FROM Students");
+
+        // Process the result set
+        while (res->next()) {
+            Student student;
+            student.Id = res->getInt("Id");
+            student.Name = res->getString("Name");
+            students.push_back(student);
+        }
+
+        delete res;
+        delete stmt;
+        delete con;
+    }
+    catch (sql::SQLException &e) {
+        // Handle any exceptions that occur during database operations
+        // ...
+    }
+
+    return students;
+}
+#include "StudentRepository.h"
+#include <iostream>
+
+int main() {
+    StudentRepository studentRepository;
+    std::vector<Student> students = studentRepository.GetAllStudents();
+
+    // Display the student names
+    for (const auto& student : students) {
+        std::cout << "Name: " << student.Name << std::endl;
+    }
+
+    return 0;
+}
